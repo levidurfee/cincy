@@ -82,6 +82,132 @@
       border-bottom: 3px solid var(--accent);
     }
 
+    /* ── Filter bar ── */
+    .filter-bar {
+      background: var(--surface);
+      border-bottom: 1px solid var(--border);
+      padding: 1.2rem 1.5rem;
+      position: sticky;
+      top: 0;
+      z-index: 900;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.06);
+    }
+    .filter-bar-inner {
+      max-width: 1280px;
+      margin: 0 auto;
+      display: flex;
+      flex-wrap: wrap;
+      gap: 1.2rem 2rem;
+      align-items: flex-end;
+    }
+    .filter-group {
+      display: flex;
+      flex-direction: column;
+      gap: 0.3rem;
+      min-width: 160px;
+    }
+    .filter-group label {
+      font-family: sans-serif;
+      font-size: 0.68rem;
+      text-transform: uppercase;
+      letter-spacing: 0.07em;
+      color: var(--muted);
+      font-weight: 600;
+    }
+    .filter-group .filter-val {
+      font-family: sans-serif;
+      font-size: 0.8rem;
+      font-weight: 700;
+      color: var(--accent2);
+    }
+    .filter-group input[type="range"] {
+      -webkit-appearance: none;
+      appearance: none;
+      width: 100%;
+      height: 5px;
+      border-radius: 999px;
+      background: #e0dbd2;
+      outline: none;
+      cursor: pointer;
+    }
+    .filter-group input[type="range"]::-webkit-slider-thumb {
+      -webkit-appearance: none;
+      appearance: none;
+      width: 16px;
+      height: 16px;
+      border-radius: 50%;
+      background: var(--accent2);
+      cursor: pointer;
+      border: 2px solid #fff;
+      box-shadow: 0 1px 4px rgba(0,0,0,0.2);
+    }
+    .filter-group input[type="range"]::-moz-range-thumb {
+      width: 16px;
+      height: 16px;
+      border-radius: 50%;
+      background: var(--accent2);
+      cursor: pointer;
+      border: 2px solid #fff;
+      box-shadow: 0 1px 4px rgba(0,0,0,0.2);
+    }
+
+    /* Crime toggle */
+    .crime-toggle {
+      display: flex;
+      gap: 0;
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      overflow: hidden;
+    }
+    .crime-toggle label {
+      text-transform: none !important;
+      letter-spacing: 0 !important;
+      color: var(--text) !important;
+      cursor: pointer;
+      padding: 0.3rem 0.6rem;
+      font-size: 0.75rem !important;
+      font-weight: 500 !important;
+      background: var(--surface);
+      border-right: 1px solid var(--border);
+      transition: background 0.15s, color 0.15s;
+      user-select: none;
+      white-space: nowrap;
+    }
+    .crime-toggle label:last-child { border-right: none; }
+    .crime-toggle input[type="radio"] { display: none; }
+    .crime-toggle input[type="radio"]:checked + label {
+      background: var(--accent2);
+      color: #fff !important;
+    }
+
+    /* filter meta row */
+    .filter-meta {
+      max-width: 1280px;
+      margin: 0 auto;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding-top: 0.8rem;
+      border-top: 1px solid var(--border);
+      margin-top: 0.8rem;
+      font-family: sans-serif;
+      font-size: 0.8rem;
+    }
+    .filter-count { color: var(--muted); }
+    .filter-count strong { color: var(--accent2); }
+    .filter-reset {
+      background: none;
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      padding: 0.25rem 0.7rem;
+      font-family: sans-serif;
+      font-size: 0.75rem;
+      color: var(--muted);
+      cursor: pointer;
+      transition: border-color 0.15s, color 0.15s;
+    }
+    .filter-reset:hover { border-color: var(--accent2); color: var(--accent2); }
+
     /* ── Grid ── */
     main {
       max-width: 1280px;
@@ -110,6 +236,16 @@
       gap: 1.5rem;
     }
 
+    /* empty state */
+    .no-results {
+      grid-column: 1 / -1;
+      text-align: center;
+      padding: 3rem 1rem;
+      font-family: sans-serif;
+      color: var(--muted);
+    }
+    .no-results strong { display: block; font-size: 1.1rem; margin-bottom: 0.4rem; color: var(--accent2); }
+
     /* ── Card ── */
     .card {
       background: var(--surface);
@@ -124,6 +260,7 @@
       transform: translateY(-3px);
       box-shadow: 0 6px 20px rgba(0,0,0,0.12);
     }
+    .card.hidden { display: none; }
 
     .card-header {
       padding: 1rem 1.2rem 0.7rem;
@@ -278,16 +415,54 @@
 
 <header>
   <h1>Moving to Cincinnati</h1>
-  <p>A neighborhood guide for your July 2026 move — comparing 8 communities across the Greater Cincinnati area</p>
+  <p>A neighborhood guide for your July 2026 move — comparing 12 communities across the Greater Cincinnati area</p>
 </header>
 
 <div class="legend-strip">
   <div class="legend-item"><span class="legend-dot" style="background:#27ae60;"></span>Very Safe</div>
   <div class="legend-item"><span class="legend-dot" style="background:#e67e22;"></span>Moderate Safety</div>
   <div class="legend-item"><span class="legend-dot" style="background:#c0392b;"></span>Elevated Crime</div>
+  <div class="legend-item"><span style="font-size:1rem;line-height:1;color:#5c6bc0;">&#9733;</span>&nbsp;Your Destination</div>
 </div>
 
 <div id="map"></div>
+
+<div class="filter-bar">
+  <div class="filter-bar-inner">
+
+    <div class="filter-group">
+      <label>Max Home Price <span class="filter-val" id="val-price">Any</span></label>
+      <input type="range" id="filter-price" min="100" max="1100" step="25" value="1100" />
+    </div>
+
+    <div class="filter-group">
+      <label>Crime Level</label>
+      <div class="crime-toggle">
+        <input type="radio" name="crime" id="crime-all" value="all" checked />
+        <label for="crime-all">All</label>
+        <input type="radio" name="crime" id="crime-mod" value="moderate" />
+        <label for="crime-mod">Moderate &amp; Under</label>
+        <input type="radio" name="crime" id="crime-safe" value="safe" />
+        <label for="crime-safe">Safe Only</label>
+      </div>
+    </div>
+
+    <div class="filter-group">
+      <label>Min Walk Score <span class="filter-val" id="val-walk">Any</span></label>
+      <input type="range" id="filter-walk" min="0" max="100" step="5" value="0" />
+    </div>
+
+    <div class="filter-group">
+      <label>Max Drive to Blue Ash <span class="filter-val" id="val-drive">Any</span></label>
+      <input type="range" id="filter-drive" min="5" max="60" step="5" value="60" />
+    </div>
+
+  </div>
+  <div class="filter-meta">
+    <div class="filter-count">Showing <strong id="count-shown">12</strong> of <strong id="count-total">12</strong> neighborhoods</div>
+    <button class="filter-reset" id="btn-reset">Reset Filters</button>
+  </div>
+</div>
 
 <main>
   <p class="section-title"><span>Neighborhood Profiles</span></p>
@@ -295,21 +470,25 @@
 </main>
 
 <footer>
-  Data sourced from Niche, Walk Score, Zillow, Redfin, CrimeGrade, AreaVibes &amp; local community websites &bull; Prices reflect late 2025 / early 2026 market data &bull; Crime ratings are relative to national averages
+  Data sourced from Niche, Walk Score, Zillow, Redfin, CrimeGrade, AreaVibes &amp; local community websites &bull; Prices reflect late 2025 / early 2026 market data &bull; Crime ratings are relative to national averages &bull; Drive times to 11511 Reed Hartman Hwy, Blue Ash, OH are approximate
 </footer>
 
 <script>
 // ── Neighborhood data ──────────────────────────────────────────────────────
+// priceMax: upper bound in $K for filter comparisons
+// driveMin: driving minutes to 11511 Reed Hartman Hwy, Blue Ash, OH 45241
 const neighborhoods = [
   {
     name: "Clifton",
     type: "Cincinnati Neighborhood",
     lat: 39.1501, lng: -84.5180,
     price: "$413K – $498K",
+    priceMax: 498,
     crimeLevel: "moderate",
     crimeSummary: "C+ (Niche) — moderately safer than city avg",
     walkScore: 60,
     walkLabel: "Somewhat Walkable",
+    driveMin: 22,
     community: [
       "Clifton Town Meeting — active monthly neighborhood council",
       "Clifton Plaza Farmers Market — every Monday on Ludlow Ave",
@@ -323,10 +502,12 @@ const neighborhoods = [
     type: "Village — Hamilton County",
     lat: 39.1443, lng: -84.3762,
     price: "$538K – $1.0M",
+    priceMax: 1000,
     crimeLevel: "safe",
     crimeSummary: "A (Niche) — violent crime 75% below national avg",
     walkScore: 74,
     walkLabel: "Very Walkable",
+    driveMin: 20,
     community: [
       "Farmers Market every Sunday, May–Oct (village square)",
       "The Barn arts center — exhibits, classes, kids' activities",
@@ -340,10 +521,12 @@ const neighborhoods = [
     type: "Cincinnati Neighborhood",
     lat: 39.1563, lng: -84.5370,
     price: "$285K – $330K",
+    priceMax: 330,
     crimeLevel: "elevated",
     crimeSummary: "C− (CrimeGrade) — elevated vs. national avg",
     walkScore: 67,
     walkLabel: "Somewhat Walkable",
+    driveMin: 25,
     community: [
       "Year-round Farmers Market every Wednesday on Hamilton Ave",
       "Heart of Northside neighborhood organization",
@@ -357,10 +540,12 @@ const neighborhoods = [
     type: "City — Hamilton County",
     lat: 39.2314, lng: -84.4664,
     price: "~$584K",
+    priceMax: 584,
     crimeLevel: "safe",
     crimeSummary: "Very low — well below national average",
     walkScore: 61,
     walkLabel: "Somewhat Walkable",
+    driveMin: 20,
     community: [
       "May Fete carnival — annual tradition since 1922",
       "Wyoming Fall Festival street fair on Wyoming Ave",
@@ -374,10 +559,12 @@ const neighborhoods = [
     type: "City — Hamilton County",
     lat: 39.2281, lng: -84.3541,
     price: "~$623K",
+    priceMax: 623,
     crimeLevel: "safe",
     crimeSummary: "67% below national avg; violent crime 86% below avg",
     walkScore: 68,
     walkLabel: "Somewhat Walkable",
+    driveMin: 10,
     community: [
       "Farmers Market every Saturday, May–Oct",
       "Bastille Day Celebration & Independence Day Parade",
@@ -391,10 +578,12 @@ const neighborhoods = [
     type: "City — Hamilton County",
     lat: 39.1863, lng: -84.3677,
     price: "~$433K",
+    priceMax: 433,
     crimeLevel: "safe",
     crimeSummary: "Property crime 70% below national avg; very safe",
     walkScore: 3,
     walkLabel: "Car-Dependent",
+    driveMin: 15,
     community: [
       "Farmers Market every Thursday, May–mid-Dec (Dawson Rd)",
       "Independence Day Parade & Fireworks at McDonald Commons",
@@ -408,10 +597,12 @@ const neighborhoods = [
     type: "Village — Hamilton County",
     lat: 39.1670, lng: -84.4986,
     price: "$165K – $191K",
+    priceMax: 191,
     crimeLevel: "moderate",
     crimeSummary: "Mixed — at or above Ohio avg for its size; working-class enclave",
     walkScore: 57,
     walkLabel: "Somewhat Walkable",
+    driveMin: 20,
     community: [
       "Famous Annual Soap Box Derby",
       "Parades, festivals & community picnics throughout the year",
@@ -425,15 +616,94 @@ const neighborhoods = [
     type: "Village — Warren County",
     lat: 39.3109, lng: -84.2070,
     price: "$343K – $375K",
+    priceMax: 375,
     crimeLevel: "safe",
     crimeSummary: "Violent crime 63% below national avg; very safe",
     walkScore: 5,
     walkLabel: "Car-Dependent",
+    driveMin: 35,
     community: [
       "Joint Freedom Parade & Festival (4th of July)",
       "Little Miami Scenic Trail — premier multi-use river trail",
       "Testerman Park & Marr Park (13 soccer fields)",
       "Fast-growing Warren County with highly rated schools"
+    ],
+    color: "#27ae60"
+  },
+  // ── New neighborhoods ──
+  {
+    name: "Deer Park",
+    type: "City — Hamilton County",
+    lat: 39.2058, lng: -84.3952,
+    price: "$252K – $290K",
+    priceMax: 290,
+    crimeLevel: "safe",
+    crimeSummary: "A+ (AreaVibes) — total crime 59% below national avg",
+    walkScore: 73,
+    walkLabel: "Very Walkable",
+    driveMin: 7,
+    community: [
+      "Deer Park Market Gathering — 1st Sunday of month, May–Sep",
+      "Chamberlin Park (13.5 ac) — Days in Park Festival & Party in the Park summer concerts",
+      "Touch-A-Truck community event (Sep) & Easter Egg Hunt",
+      "Walkable Blue Ash Rd corridor; ~5,400 residents, high home-ownership"
+    ],
+    color: "#27ae60"
+  },
+  {
+    name: "Silverton",
+    type: "Village — Hamilton County",
+    lat: 39.1920, lng: -84.3950,
+    price: "$282K – $297K",
+    priceMax: 297,
+    crimeLevel: "safe",
+    crimeSummary: "A (AreaVibes) — total crime 49% below national avg",
+    walkScore: 65,
+    walkLabel: "Somewhat Walkable",
+    driveMin: 9,
+    community: [
+      "Taste of Silverton — annual June food & music festival",
+      "Silverton Town Commons Summer Event Series — outdoor concerts",
+      "Silverton Block Watch Association (Ohio's largest)",
+      "Historic craftsman homes; National Civic League award winner"
+    ],
+    color: "#27ae60"
+  },
+  {
+    name: "Reading",
+    type: "City — Hamilton County",
+    lat: 39.2248, lng: -84.4413,
+    price: "$240K – $274K",
+    priceMax: 274,
+    crimeLevel: "moderate",
+    crimeSummary: "B (AreaVibes) — violent crime 57% below national avg; moderate property crime",
+    walkScore: 65,
+    walkLabel: "Somewhat Walkable",
+    driveMin: 14,
+    community: [
+      "Reading Farmers Market — every Friday, June–September (Market St)",
+      "Holiday Walk — December event with Santa, live Nativity & ice rink",
+      "Running Scared 5K (October); Reading Parks Foundation est. 2002",
+      "Walkable Market St corridor with shops & dining; tight-knit community"
+    ],
+    color: "#e67e22"
+  },
+  {
+    name: "Bellevue",
+    type: "City — Campbell County, KY",
+    lat: 39.1060, lng: -84.4779,
+    price: "$219K – $295K",
+    priceMax: 295,
+    crimeLevel: "safe",
+    crimeSummary: "A+ (AreaVibes) — 29% below Kentucky avg; named 'Walk Friendly Community'",
+    walkScore: 79,
+    walkLabel: "Very Walkable",
+    driveMin: 30,
+    community: [
+      "Bellevue Beach Park — Farmers Market (3rd Sunday Jul–Oct), Art in the Park & river concerts",
+      "First Friday monthly events along Taylor & Fairfield Ave",
+      "Named 'Most Charming City in Kentucky' by Southern Living magazine",
+      "Historic Fairfield Ave with locally-owned shops, restaurants & indie bars"
     ],
     color: "#27ae60"
   }
@@ -467,8 +737,10 @@ function makeIcon(color) {
   });
 }
 
+const crimeColors = { safe: '#27ae60', moderate: '#e67e22', elevated: '#c0392b' };
+const markers = [];
+
 neighborhoods.forEach(n => {
-  const crimeColors = { safe: '#27ae60', moderate: '#e67e22', elevated: '#c0392b' };
   const marker = L.marker([n.lat, n.lng], { icon: makeIcon(crimeColors[n.crimeLevel]) }).addTo(map);
   marker.bindPopup(`
     <div class="map-popup">
@@ -476,10 +748,36 @@ neighborhoods.forEach(n => {
       <p>${n.type}</p>
       <p class="mp-price">${n.price}</p>
       <p>Walk Score: <strong>${n.walkScore}</strong> — ${n.walkLabel}</p>
+      <p>Drive to Blue Ash: <strong>~${n.driveMin} min</strong></p>
       <p style="margin-top:4px;font-size:0.75rem;color:#888;">${n.crimeSummary}</p>
     </div>
   `, { maxWidth: 240 });
+  markers.push(marker);
 });
+
+// ── Destination marker (11511 Reed Hartman Hwy, Blue Ash) ───────────────────
+const destIcon = L.divIcon({
+  html: `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 42" width="32" height="42">
+    <path d="M16 0C7.163 0 0 7.163 0 16c0 11.25 16 26 16 26S32 27.25 32 16C32 7.163 24.837 0 16 0z"
+          fill="#1a237e" stroke="#fff" stroke-width="2"/>
+    <text x="16" y="21" text-anchor="middle" font-size="14" font-family="sans-serif" fill="white" font-weight="bold">&#9733;</text>
+  </svg>`,
+  className: '',
+  iconSize: [32, 42],
+  iconAnchor: [16, 42],
+  popupAnchor: [0, -44]
+});
+
+L.marker([39.2431, -84.3813], { icon: destIcon, zIndexOffset: 1000 })
+  .addTo(map)
+  .bindPopup(`
+    <div class="map-popup">
+      <h3>&#9733; Your Destination</h3>
+      <p style="font-weight:600;">11511 Reed Hartman Hwy</p>
+      <p>Blue Ash, OH 45241</p>
+      <p style="font-size:0.75rem;color:#888;margin-top:4px;">Drive times shown on each card are to this location</p>
+    </div>
+  `, { maxWidth: 220 });
 
 // ── Build cards ─────────────────────────────────────────────────────────────
 const crimeClass = { safe: 'crime-safe', moderate: 'crime-moderate', elevated: 'crime-elevated' };
@@ -487,8 +785,9 @@ const crimeLabel = { safe: 'Low Crime', moderate: 'Moderate Crime', elevated: 'E
 const crimeIcon  = { safe: '✔', moderate: '~', elevated: '!' };
 
 const grid = document.getElementById('grid');
+const cardEls = [];
 
-neighborhoods.forEach(n => {
+neighborhoods.forEach((n, i) => {
   const card = document.createElement('div');
   card.className = 'card';
   card.style.setProperty('--accent-color', n.color);
@@ -535,6 +834,14 @@ neighborhoods.forEach(n => {
       </div>
 
       <div class="stat">
+        <div class="stat-icon">&#128663;</div>
+        <div class="stat-content">
+          <div class="stat-label">Drive to Blue Ash</div>
+          <div class="stat-value">~${n.driveMin} min <span style="font-size:0.8rem;color:var(--muted);font-family:sans-serif;">to Reed Hartman Hwy</span></div>
+        </div>
+      </div>
+
+      <div class="stat">
         <div class="stat-icon">&#127970;</div>
         <div class="stat-content">
           <div class="stat-label">Community Highlights</div>
@@ -548,7 +855,90 @@ neighborhoods.forEach(n => {
   `;
 
   grid.appendChild(card);
+  cardEls.push(card);
 });
+
+// ── Filter logic ────────────────────────────────────────────────────────────
+const total = neighborhoods.length;
+const elCountShown = document.getElementById('count-shown');
+const elCountTotal = document.getElementById('count-total');
+const elValPrice   = document.getElementById('val-price');
+const elValWalk    = document.getElementById('val-walk');
+const elValDrive   = document.getElementById('val-drive');
+const sliderPrice  = document.getElementById('filter-price');
+const sliderWalk   = document.getElementById('filter-walk');
+const sliderDrive  = document.getElementById('filter-drive');
+
+elCountTotal.textContent = total;
+
+function getCrimeFilter() {
+  return document.querySelector('input[name="crime"]:checked').value;
+}
+
+const crimeOrder = { safe: 0, moderate: 1, elevated: 2 };
+
+function applyFilters() {
+  const maxPrice  = parseInt(sliderPrice.value, 10);
+  const minWalk   = parseInt(sliderWalk.value, 10);
+  const maxDrive  = parseInt(sliderDrive.value, 10);
+  const crimeMode = getCrimeFilter();
+
+  // Update display labels
+  elValPrice.textContent = maxPrice >= 1100 ? 'Any' : `$${maxPrice}K`;
+  elValWalk.textContent  = minWalk === 0    ? 'Any' : minWalk;
+  elValDrive.textContent = maxDrive >= 60   ? 'Any' : `${maxDrive} min`;
+
+  let shown = 0;
+
+  neighborhoods.forEach((n, i) => {
+    let visible = true;
+
+    if (maxPrice < 1100 && n.priceMax > maxPrice) visible = false;
+    if (minWalk > 0 && n.walkScore < minWalk) visible = false;
+    if (maxDrive < 60 && n.driveMin > maxDrive) visible = false;
+    if (crimeMode === 'safe'     && n.crimeLevel !== 'safe') visible = false;
+    if (crimeMode === 'moderate' && crimeOrder[n.crimeLevel] > 1) visible = false;
+
+    if (visible) {
+      cardEls[i].classList.remove('hidden');
+      if (!map.hasLayer(markers[i])) markers[i].addTo(map);
+      shown++;
+    } else {
+      cardEls[i].classList.add('hidden');
+      if (map.hasLayer(markers[i])) markers[i].remove();
+    }
+  });
+
+  // Show empty state
+  let emptyEl = grid.querySelector('.no-results');
+  if (shown === 0) {
+    if (!emptyEl) {
+      emptyEl = document.createElement('div');
+      emptyEl.className = 'no-results';
+      emptyEl.innerHTML = '<strong>No neighborhoods match your filters.</strong>Try widening your criteria using the sliders above.';
+      grid.appendChild(emptyEl);
+    }
+  } else if (emptyEl) {
+    emptyEl.remove();
+  }
+
+  elCountShown.textContent = shown;
+}
+
+sliderPrice.addEventListener('input', applyFilters);
+sliderWalk.addEventListener('input', applyFilters);
+sliderDrive.addEventListener('input', applyFilters);
+document.querySelectorAll('input[name="crime"]').forEach(r => r.addEventListener('change', applyFilters));
+
+document.getElementById('btn-reset').addEventListener('click', () => {
+  sliderPrice.value = 1100;
+  sliderWalk.value  = 0;
+  sliderDrive.value = 60;
+  document.getElementById('crime-all').checked = true;
+  applyFilters();
+});
+
+applyFilters();
 </script>
 </body>
 </html>
