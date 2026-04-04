@@ -1,0 +1,554 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Moving to Cincinnati — Neighborhood Guide</title>
+
+  <!-- Leaflet.js -->
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --bg:        #f4f1ec;
+      --surface:   #ffffff;
+      --border:    #e0dbd2;
+      --accent:    #c0392b;
+      --accent2:   #2c3e50;
+      --text:      #2c2c2c;
+      --muted:     #6b6b6b;
+      --safe:      #27ae60;
+      --moderate:  #e67e22;
+      --elevated:  #c0392b;
+      --radius:    10px;
+    }
+
+    body {
+      font-family: 'Georgia', serif;
+      background: var(--bg);
+      color: var(--text);
+      min-height: 100vh;
+    }
+
+    /* ── Header ── */
+    header {
+      background: var(--accent2);
+      color: #fff;
+      padding: 2.5rem 2rem 2rem;
+      text-align: center;
+    }
+    header h1 {
+      font-size: clamp(1.8rem, 4vw, 2.8rem);
+      letter-spacing: 0.02em;
+      margin-bottom: 0.5rem;
+    }
+    header p {
+      font-size: 1.05rem;
+      color: #b0bec5;
+      font-style: italic;
+    }
+
+    /* ── Legend strip ── */
+    .legend-strip {
+      background: var(--accent2);
+      border-top: 1px solid rgba(255,255,255,0.1);
+      display: flex;
+      justify-content: center;
+      gap: 2rem;
+      padding: 0.6rem 1rem;
+      flex-wrap: wrap;
+    }
+    .legend-item {
+      display: flex;
+      align-items: center;
+      gap: 0.4rem;
+      font-size: 0.8rem;
+      color: #cfd8dc;
+    }
+    .legend-dot {
+      width: 12px; height: 12px;
+      border-radius: 50%;
+      display: inline-block;
+      border: 2px solid rgba(255,255,255,0.4);
+    }
+
+    /* ── Map ── */
+    #map {
+      width: 100%;
+      height: 480px;
+      border-bottom: 3px solid var(--accent);
+    }
+
+    /* ── Grid ── */
+    main {
+      max-width: 1280px;
+      margin: 0 auto;
+      padding: 2.5rem 1.5rem 4rem;
+    }
+    .section-title {
+      text-align: center;
+      font-size: 1.5rem;
+      color: var(--accent2);
+      margin-bottom: 2rem;
+      letter-spacing: 0.04em;
+      text-transform: uppercase;
+      font-size: 0.9rem;
+      font-family: sans-serif;
+      font-weight: 700;
+    }
+    .section-title span {
+      border-bottom: 2px solid var(--accent);
+      padding-bottom: 4px;
+    }
+
+    .grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+      gap: 1.5rem;
+    }
+
+    /* ── Card ── */
+    .card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      overflow: hidden;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.07);
+      transition: transform 0.18s, box-shadow 0.18s;
+      cursor: default;
+    }
+    .card:hover {
+      transform: translateY(-3px);
+      box-shadow: 0 6px 20px rgba(0,0,0,0.12);
+    }
+
+    .card-header {
+      padding: 1rem 1.2rem 0.7rem;
+      border-bottom: 3px solid var(--accent-color, #c0392b);
+    }
+    .card-header h2 {
+      font-size: 1.2rem;
+      color: var(--accent2);
+    }
+    .card-type {
+      font-size: 0.72rem;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      color: var(--muted);
+      font-family: sans-serif;
+      margin-top: 2px;
+    }
+
+    .card-body {
+      padding: 1rem 1.2rem 1.3rem;
+      display: flex;
+      flex-direction: column;
+      gap: 0.85rem;
+    }
+
+    /* stat rows */
+    .stat {
+      display: flex;
+      align-items: flex-start;
+      gap: 0.6rem;
+    }
+    .stat-icon {
+      font-size: 1.05rem;
+      line-height: 1.35;
+      flex-shrink: 0;
+      width: 1.4rem;
+      text-align: center;
+    }
+    .stat-content {}
+    .stat-label {
+      font-family: sans-serif;
+      font-size: 0.68rem;
+      text-transform: uppercase;
+      letter-spacing: 0.07em;
+      color: var(--muted);
+      margin-bottom: 2px;
+    }
+    .stat-value {
+      font-size: 0.95rem;
+      color: var(--text);
+    }
+
+    /* price highlight */
+    .price-value {
+      font-weight: bold;
+      font-size: 1.05rem;
+      color: var(--accent2);
+    }
+
+    /* crime badge */
+    .crime-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.3rem;
+      padding: 0.18rem 0.55rem;
+      border-radius: 999px;
+      font-size: 0.8rem;
+      font-family: sans-serif;
+      font-weight: 600;
+    }
+    .crime-safe     { background: #d5f0e3; color: #1a7a45; }
+    .crime-moderate { background: #fdebd0; color: #a04000; }
+    .crime-elevated { background: #fadbd8; color: #922b21; }
+
+    /* walk score bar */
+    .walk-bar-wrap {
+      display: flex;
+      align-items: center;
+      gap: 0.6rem;
+    }
+    .walk-bar-bg {
+      flex: 1;
+      height: 7px;
+      background: #e8e3db;
+      border-radius: 999px;
+      overflow: hidden;
+    }
+    .walk-bar-fill {
+      height: 100%;
+      border-radius: 999px;
+      background: linear-gradient(90deg, #e67e22, #27ae60);
+    }
+    .walk-score-num {
+      font-family: sans-serif;
+      font-size: 0.82rem;
+      font-weight: 700;
+      color: var(--accent2);
+      min-width: 2.2rem;
+      text-align: right;
+    }
+
+    /* community bullets */
+    .community-list {
+      list-style: none;
+      display: flex;
+      flex-direction: column;
+      gap: 0.25rem;
+    }
+    .community-list li {
+      font-size: 0.85rem;
+      padding-left: 1rem;
+      position: relative;
+      color: #444;
+    }
+    .community-list li::before {
+      content: '•';
+      position: absolute;
+      left: 0;
+      color: var(--accent);
+    }
+
+    /* ── Footer ── */
+    footer {
+      text-align: center;
+      padding: 1.5rem;
+      font-size: 0.78rem;
+      color: var(--muted);
+      border-top: 1px solid var(--border);
+      font-family: sans-serif;
+    }
+
+    /* ── Leaflet popup overrides ── */
+    .leaflet-popup-content-wrapper {
+      border-radius: 8px;
+      box-shadow: 0 4px 16px rgba(0,0,0,0.18);
+    }
+    .map-popup h3 {
+      font-size: 1rem;
+      color: var(--accent2);
+      margin-bottom: 4px;
+    }
+    .map-popup p {
+      font-size: 0.82rem;
+      color: #444;
+      margin: 2px 0;
+      font-family: sans-serif;
+    }
+    .map-popup .mp-price { font-weight: bold; color: var(--accent2); }
+  </style>
+</head>
+<body>
+
+<header>
+  <h1>Moving to Cincinnati</h1>
+  <p>A neighborhood guide for your July 2026 move — comparing 8 communities across the Greater Cincinnati area</p>
+</header>
+
+<div class="legend-strip">
+  <div class="legend-item"><span class="legend-dot" style="background:#27ae60;"></span>Very Safe</div>
+  <div class="legend-item"><span class="legend-dot" style="background:#e67e22;"></span>Moderate Safety</div>
+  <div class="legend-item"><span class="legend-dot" style="background:#c0392b;"></span>Elevated Crime</div>
+</div>
+
+<div id="map"></div>
+
+<main>
+  <p class="section-title"><span>Neighborhood Profiles</span></p>
+  <div class="grid" id="grid"></div>
+</main>
+
+<footer>
+  Data sourced from Niche, Walk Score, Zillow, Redfin, CrimeGrade, AreaVibes &amp; local community websites &bull; Prices reflect late 2025 / early 2026 market data &bull; Crime ratings are relative to national averages
+</footer>
+
+<script>
+// ── Neighborhood data ──────────────────────────────────────────────────────
+const neighborhoods = [
+  {
+    name: "Clifton",
+    type: "Cincinnati Neighborhood",
+    lat: 39.1501, lng: -84.5180,
+    price: "$413K – $498K",
+    crimeLevel: "moderate",
+    crimeSummary: "C+ (Niche) — moderately safer than city avg",
+    walkScore: 60,
+    walkLabel: "Somewhat Walkable",
+    community: [
+      "Clifton Town Meeting — active monthly neighborhood council",
+      "Clifton Plaza Farmers Market — every Monday on Ludlow Ave",
+      "Annual Lantern Walk & House Tour",
+      "Adjacent to Cincinnati Zoo & UC campus"
+    ],
+    color: "#e67e22"
+  },
+  {
+    name: "Mariemont",
+    type: "Village — Hamilton County",
+    lat: 39.1443, lng: -84.3762,
+    price: "$538K – $1.0M",
+    crimeLevel: "safe",
+    crimeSummary: "A (Niche) — violent crime 75% below national avg",
+    walkScore: 74,
+    walkLabel: "Very Walkable",
+    community: [
+      "Farmers Market every Sunday, May–Oct (village square)",
+      "The Barn arts center — exhibits, classes, kids' activities",
+      "National Historic Landmark planned community (1920s)",
+      "Mariemont Garden Club est. 1941; MariElders senior center"
+    ],
+    color: "#27ae60"
+  },
+  {
+    name: "Northside",
+    type: "Cincinnati Neighborhood",
+    lat: 39.1563, lng: -84.5370,
+    price: "$285K – $330K",
+    crimeLevel: "elevated",
+    crimeSummary: "C− (CrimeGrade) — elevated vs. national avg",
+    walkScore: 67,
+    walkLabel: "Somewhat Walkable",
+    community: [
+      "Year-round Farmers Market every Wednesday on Hamilton Ave",
+      "Heart of Northside neighborhood organization",
+      "Strong indie arts, music & LGBTQ+ community scene",
+      "Annual block parties & local music events"
+    ],
+    color: "#c0392b"
+  },
+  {
+    name: "Wyoming",
+    type: "City — Hamilton County",
+    lat: 39.2314, lng: -84.4664,
+    price: "~$584K",
+    crimeLevel: "safe",
+    crimeSummary: "Very low — well below national average",
+    walkScore: 61,
+    walkLabel: "Somewhat Walkable",
+    community: [
+      "May Fete carnival — annual tradition since 1922",
+      "Wyoming Fall Festival street fair on Wyoming Ave",
+      "Summer Concert Series on the Village Green",
+      "Active newcomers committee; school district ranked #7 in Ohio"
+    ],
+    color: "#27ae60"
+  },
+  {
+    name: "Montgomery",
+    type: "City — Hamilton County",
+    lat: 39.2281, lng: -84.3541,
+    price: "~$623K",
+    crimeLevel: "safe",
+    crimeSummary: "67% below national avg; violent crime 86% below avg",
+    walkScore: 68,
+    walkLabel: "Somewhat Walkable",
+    community: [
+      "Farmers Market every Saturday, May–Oct",
+      "Bastille Day Celebration & Independence Day Parade",
+      "Guided walking food tours of downtown Montgomery",
+      "Johnson Nature Preserve with botanical walks"
+    ],
+    color: "#27ae60"
+  },
+  {
+    name: "Madeira",
+    type: "City — Hamilton County",
+    lat: 39.1863, lng: -84.3677,
+    price: "~$433K",
+    crimeLevel: "safe",
+    crimeSummary: "Property crime 70% below national avg; very safe",
+    walkScore: 3,
+    walkLabel: "Car-Dependent",
+    community: [
+      "Farmers Market every Thursday, May–mid-Dec (Dawson Rd)",
+      "Independence Day Parade & Fireworks at McDonald Commons",
+      "August Street Dance & Light-Up Madeira (Christmas)",
+      "Named 'Best Suburb' in the Cincinnati region"
+    ],
+    color: "#27ae60"
+  },
+  {
+    name: "St. Bernard",
+    type: "Village — Hamilton County",
+    lat: 39.1670, lng: -84.4986,
+    price: "$165K – $191K",
+    crimeLevel: "moderate",
+    crimeSummary: "Mixed — at or above Ohio avg for its size; working-class enclave",
+    walkScore: 57,
+    walkLabel: "Somewhat Walkable",
+    community: [
+      "Famous Annual Soap Box Derby",
+      "Parades, festivals & community picnics throughout the year",
+      "Tower Park with sports fields, playgrounds & trails",
+      "Tight-knit, friendly small-town feel (~3,900 residents)"
+    ],
+    color: "#e67e22"
+  },
+  {
+    name: "Maineville",
+    type: "Village — Warren County",
+    lat: 39.3109, lng: -84.2070,
+    price: "$343K – $375K",
+    crimeLevel: "safe",
+    crimeSummary: "Violent crime 63% below national avg; very safe",
+    walkScore: 5,
+    walkLabel: "Car-Dependent",
+    community: [
+      "Joint Freedom Parade & Festival (4th of July)",
+      "Little Miami Scenic Trail — premier multi-use river trail",
+      "Testerman Park & Marr Park (13 soccer fields)",
+      "Fast-growing Warren County with highly rated schools"
+    ],
+    color: "#27ae60"
+  }
+];
+
+// ── Map setup ───────────────────────────────────────────────────────────────
+const map = L.map('map', {
+  center: [39.19, -84.43],
+  zoom: 11,
+  scrollWheelZoom: false
+});
+
+L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png', {
+  attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors &copy; <a href="https://carto.com/attributions">CARTO</a>',
+  maxZoom: 19
+}).addTo(map);
+
+function makeIcon(color) {
+  const svg = `
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 36" width="24" height="36">
+      <path d="M12 0C5.373 0 0 5.373 0 12c0 9 12 24 12 24S24 21 24 12C24 5.373 18.627 0 12 0z"
+            fill="${color}" stroke="#fff" stroke-width="1.5"/>
+      <circle cx="12" cy="12" r="5" fill="white"/>
+    </svg>`;
+  return L.divIcon({
+    html: svg,
+    className: '',
+    iconSize: [24, 36],
+    iconAnchor: [12, 36],
+    popupAnchor: [0, -36]
+  });
+}
+
+neighborhoods.forEach(n => {
+  const crimeColors = { safe: '#27ae60', moderate: '#e67e22', elevated: '#c0392b' };
+  const marker = L.marker([n.lat, n.lng], { icon: makeIcon(crimeColors[n.crimeLevel]) }).addTo(map);
+  marker.bindPopup(`
+    <div class="map-popup">
+      <h3>${n.name}</h3>
+      <p>${n.type}</p>
+      <p class="mp-price">${n.price}</p>
+      <p>Walk Score: <strong>${n.walkScore}</strong> — ${n.walkLabel}</p>
+      <p style="margin-top:4px;font-size:0.75rem;color:#888;">${n.crimeSummary}</p>
+    </div>
+  `, { maxWidth: 240 });
+});
+
+// ── Build cards ─────────────────────────────────────────────────────────────
+const crimeClass = { safe: 'crime-safe', moderate: 'crime-moderate', elevated: 'crime-elevated' };
+const crimeLabel = { safe: 'Low Crime', moderate: 'Moderate Crime', elevated: 'Elevated Crime' };
+const crimeIcon  = { safe: '✔', moderate: '~', elevated: '!' };
+
+const grid = document.getElementById('grid');
+
+neighborhoods.forEach(n => {
+  const card = document.createElement('div');
+  card.className = 'card';
+  card.style.setProperty('--accent-color', n.color);
+
+  const walkPct = Math.min(100, n.walkScore);
+
+  card.innerHTML = `
+    <div class="card-header">
+      <h2>${n.name}</h2>
+      <div class="card-type">${n.type}</div>
+    </div>
+    <div class="card-body">
+
+      <div class="stat">
+        <div class="stat-icon">&#127968;</div>
+        <div class="stat-content">
+          <div class="stat-label">Avg. Home Price</div>
+          <div class="stat-value price-value">${n.price}</div>
+        </div>
+      </div>
+
+      <div class="stat">
+        <div class="stat-icon">&#128737;</div>
+        <div class="stat-content">
+          <div class="stat-label">Crime &amp; Safety</div>
+          <div class="stat-value" style="margin-bottom:4px;">
+            <span class="crime-badge ${crimeClass[n.crimeLevel]}">${crimeIcon[n.crimeLevel]} ${crimeLabel[n.crimeLevel]}</span>
+          </div>
+          <div style="font-size:0.78rem;color:var(--muted);font-family:sans-serif;">${n.crimeSummary}</div>
+        </div>
+      </div>
+
+      <div class="stat">
+        <div class="stat-icon">&#128694;</div>
+        <div class="stat-content">
+          <div class="stat-label">Walk Score — ${n.walkLabel}</div>
+          <div class="walk-bar-wrap">
+            <div class="walk-bar-bg">
+              <div class="walk-bar-fill" style="width:${walkPct}%"></div>
+            </div>
+            <div class="walk-score-num">${n.walkScore}<span style="font-weight:normal;color:#999;font-size:0.7rem;">/100</span></div>
+          </div>
+        </div>
+      </div>
+
+      <div class="stat">
+        <div class="stat-icon">&#127970;</div>
+        <div class="stat-content">
+          <div class="stat-label">Community Highlights</div>
+          <ul class="community-list">
+            ${n.community.map(c => `<li>${c}</li>`).join('')}
+          </ul>
+        </div>
+      </div>
+
+    </div>
+  `;
+
+  grid.appendChild(card);
+});
+</script>
+</body>
+</html>
