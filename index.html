@@ -392,6 +392,49 @@
       font-family: sans-serif;
     }
 
+    /* ── Score badge ── */
+    .score-badge {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      min-width: 2.8rem;
+      padding: 0.22rem 0.5rem;
+      border-radius: 6px;
+      font-family: sans-serif;
+      font-size: 1rem;
+      font-weight: 700;
+      flex-shrink: 0;
+      cursor: help;
+      transition: background 0.2s, color 0.2s;
+    }
+    .score-high { background: #d5f0e3; color: #1a7a45; }
+    .score-mid  { background: #fef9e7; color: #7d6608; }
+    .score-low  { background: #fadbd8; color: #922b21; }
+
+    /* ── Score weights section ── */
+    .weight-section-wrap {
+      max-width: 1280px;
+      margin: 0 auto;
+      border-top: 1px solid var(--border);
+      padding-top: 0.75rem;
+      margin-top: 0.75rem;
+    }
+    .weight-section-label {
+      font-family: sans-serif;
+      font-size: 0.68rem;
+      text-transform: uppercase;
+      letter-spacing: 0.07em;
+      color: var(--muted);
+      font-weight: 600;
+      margin-bottom: 0.5rem;
+    }
+    .weight-sliders {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 1.2rem 2rem;
+      align-items: flex-end;
+    }
+
     /* ── Leaflet popup overrides ── */
     .leaflet-popup-content-wrapper {
       border-radius: 8px;
@@ -458,9 +501,31 @@
     </div>
 
   </div>
+  <div class="weight-section-wrap">
+    <div class="weight-section-label">Score Weights <span style="font-weight:400;font-size:0.75rem;font-style:italic;margin-left:0.3rem;">— drag to reprioritize; cards sort by score</span></div>
+    <div class="weight-sliders">
+      <div class="filter-group">
+        <label>Price <span class="filter-val" id="w-val-price">30%</span></label>
+        <input type="range" id="w-price" min="0" max="100" step="5" value="30" />
+      </div>
+      <div class="filter-group">
+        <label>Crime Safety <span class="filter-val" id="w-val-crime">25%</span></label>
+        <input type="range" id="w-crime" min="0" max="100" step="5" value="25" />
+      </div>
+      <div class="filter-group">
+        <label>Walk Score <span class="filter-val" id="w-val-walk">20%</span></label>
+        <input type="range" id="w-walk" min="0" max="100" step="5" value="20" />
+      </div>
+      <div class="filter-group">
+        <label>Drive Time <span class="filter-val" id="w-val-drive">25%</span></label>
+        <input type="range" id="w-drive" min="0" max="100" step="5" value="25" />
+      </div>
+    </div>
+  </div>
+
   <div class="filter-meta">
-    <div class="filter-count">Showing <strong id="count-shown">12</strong> of <strong id="count-total">12</strong> neighborhoods</div>
-    <button class="filter-reset" id="btn-reset">Reset Filters</button>
+    <div class="filter-count">Showing <strong id="count-shown">13</strong> of <strong id="count-total">13</strong> neighborhoods</div>
+    <button class="filter-reset" id="btn-reset">Reset</button>
   </div>
 </div>
 
@@ -798,6 +863,39 @@ L.marker([39.2431, -84.3813], { icon: destIcon, zIndexOffset: 1000 })
     </div>
   `, { maxWidth: 220 });
 
+// ── Scoring ──────────────────────────────────────────────────────────────────
+// Weighted min-max normalization across 4 metrics.
+// Weights are raw values (0–100); they are normalized internally so they sum to 1.
+const crimeNumeric = { safe: 100, moderate: 50, elevated: 0 };
+
+function computeScores(weights) {
+  const t = (weights.price + weights.crime + weights.walk + weights.drive) || 1;
+  const w = {
+    price: weights.price / t,
+    crime: weights.crime / t,
+    walk:  weights.walk  / t,
+    drive: weights.drive / t
+  };
+
+  const prices = neighborhoods.map(n => n.priceMax);
+  const walks  = neighborhoods.map(n => n.walkScore);
+  const drives = neighborhoods.map(n => n.driveMin);
+
+  const minP = Math.min(...prices), maxP = Math.max(...prices);
+  const minW = Math.min(...walks),  maxW = Math.max(...walks);
+  const minD = Math.min(...drives), maxD = Math.max(...drives);
+
+  return neighborhoods.map(n => {
+    const ps = 100 - (n.priceMax - minP) / (maxP - minP) * 100;  // lower price = higher
+    const cs = crimeNumeric[n.crimeLevel];                         // safe=100, moderate=50, elevated=0
+    const ws = (n.walkScore - minW) / (maxW - minW) * 100;        // higher walk = higher
+    const ds = 100 - (n.driveMin  - minD) / (maxD - minD) * 100; // shorter drive = higher
+    return Math.round(w.price * ps + w.crime * cs + w.walk * ws + w.drive * ds);
+  });
+}
+
+let currentScores = computeScores({ price: 30, crime: 25, walk: 20, drive: 25 });
+
 // ── Build cards ─────────────────────────────────────────────────────────────
 const crimeClass = { safe: 'crime-safe', moderate: 'crime-moderate', elevated: 'crime-elevated' };
 const crimeLabel = { safe: 'Low Crime', moderate: 'Moderate Crime', elevated: 'Elevated Crime' };
@@ -812,11 +910,17 @@ neighborhoods.forEach((n, i) => {
   card.style.setProperty('--accent-color', n.color);
 
   const walkPct = Math.min(100, n.walkScore);
+  const score = currentScores[i];
+  const scoreTier = score >= 70 ? 'high' : score >= 40 ? 'mid' : 'low';
+  card.style.order = String(-score);
 
   card.innerHTML = `
-    <div class="card-header">
-      <h2>${n.name}</h2>
-      <div class="card-type">${n.type}</div>
+    <div class="card-header" style="display:flex;justify-content:space-between;align-items:flex-start;gap:0.5rem;">
+      <div>
+        <h2>${n.name}</h2>
+        <div class="card-type">${n.type}</div>
+      </div>
+      <div class="score-badge score-${scoreTier}" id="score-badge-${i}" title="Composite score (0–100) based on current weights">${score}</div>
     </div>
     <div class="card-body">
 
@@ -949,14 +1053,69 @@ sliderWalk.addEventListener('input', applyFilters);
 sliderDrive.addEventListener('input', applyFilters);
 document.querySelectorAll('input[name="crime"]').forEach(r => r.addEventListener('change', applyFilters));
 
+// ── Score weight logic ───────────────────────────────────────────────────────
+const wSliderPrice = document.getElementById('w-price');
+const wSliderCrime = document.getElementById('w-crime');
+const wSliderWalk  = document.getElementById('w-walk');
+const wSliderDrive = document.getElementById('w-drive');
+
+function updateScores() {
+  const rp = parseInt(wSliderPrice.value, 10);
+  const rc = parseInt(wSliderCrime.value, 10);
+  const rw = parseInt(wSliderWalk.value,  10);
+  const rd = parseInt(wSliderDrive.value, 10);
+  const rt = (rp + rc + rw + rd) || 1;
+
+  // Show normalized percentages
+  document.getElementById('w-val-price').textContent = Math.round(rp / rt * 100) + '%';
+  document.getElementById('w-val-crime').textContent = Math.round(rc / rt * 100) + '%';
+  document.getElementById('w-val-walk').textContent  = Math.round(rw / rt * 100) + '%';
+  document.getElementById('w-val-drive').textContent = Math.round(rd / rt * 100) + '%';
+
+  currentScores = computeScores({ price: rp, crime: rc, walk: rw, drive: rd });
+
+  currentScores.forEach((score, i) => {
+    const tier = score >= 70 ? 'high' : score >= 40 ? 'mid' : 'low';
+    const badge = document.getElementById(`score-badge-${i}`);
+    badge.textContent = score;
+    badge.className = `score-badge score-${tier}`;
+    cardEls[i].style.order = String(-score);
+
+    // Rebuild map popup to include score
+    const n = neighborhoods[i];
+    markers[i].getPopup().setContent(`
+      <div class="map-popup">
+        <h3>${n.name}</h3>
+        <p>${n.type}</p>
+        <p class="mp-price">${n.price}</p>
+        <p>Walk Score: <strong>${n.walkScore}</strong> — ${n.walkLabel}</p>
+        <p>Drive to Blue Ash: <strong>~${n.driveMin} min</strong></p>
+        <p style="margin-top:4px;font-size:0.75rem;color:#888;">${n.crimeSummary}</p>
+        <p style="margin-top:6px;font-family:sans-serif;font-weight:700;color:var(--accent2);">Score: ${score}/100</p>
+      </div>
+    `);
+  });
+}
+
+wSliderPrice.addEventListener('input', updateScores);
+wSliderCrime.addEventListener('input', updateScores);
+wSliderWalk.addEventListener('input',  updateScores);
+wSliderDrive.addEventListener('input', updateScores);
+
 document.getElementById('btn-reset').addEventListener('click', () => {
   sliderPrice.value = 1100;
   sliderWalk.value  = 0;
   sliderDrive.value = 60;
   document.getElementById('crime-all').checked = true;
+  wSliderPrice.value = 30;
+  wSliderCrime.value = 25;
+  wSliderWalk.value  = 20;
+  wSliderDrive.value = 25;
+  updateScores();
   applyFilters();
 });
 
+updateScores();
 applyFilters();
 </script>
 </body>
